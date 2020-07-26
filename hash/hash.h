@@ -24,6 +24,7 @@ typedef struct {
 
 /* forward declaration(s) */
 hash_table *new_hash_table(void);
+static hash_item * new_hash_item(const char *, void *);
 
 static void check_alloc(const void *);
 
@@ -40,6 +41,16 @@ hash_table * new_hash_table(void) {
   check_alloc((void *) (new_table->items));
 
   return new_table;
+}
+
+static hash_item * new_hash_item(const char *key, void *value) {
+  hash_item *new_item;
+  new_item = (hash_item *) malloc(sizeof(hash_item));
+
+  new_item->key   = strdup(key);
+  new_item->value = value;
+
+  return new_item;
 }
 
 static void check_alloc(const void *ptr) {
