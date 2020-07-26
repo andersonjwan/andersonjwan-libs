@@ -7,7 +7,7 @@
 #include <string.h>
 
 /* RESTRICTION(S) */
-#define INIT_SIZE 100
+#define INIT_SIZE 5
 
 /* data structure definition(s) */
 typedef struct {
@@ -31,11 +31,13 @@ static hash_item HASH_ITEM_DEL = {NULL, NULL};
 hash_table * new_hash_table(void (*garbage) (void *));
 static hash_table * new_hash_table_sized(const int, void (*garbage) (void *));
 void del_hash_table(hash_table *);
+static void del_hash_table_item_key(hash_table *);
 
 static hash_item * new_hash_item(const char *, void *);
-static void * del_hash_item(hash_table *, hash_item *);
+static void del_hash_item(hash_table *, hash_item *);
+static void del_hash_item_key(hash_item *);
 
-static int hash_index(const char *, const int);
+static int hash_index(const char *, const int, const int);
 static int get_hash_index(const char *, const int, int);
 
 void hash_insert(hash_table *, const char *, void *);
@@ -52,6 +54,7 @@ static void check_alloc(const void *);
 
 static int is_prime(int);
 static int next_prime(int);
+static int power(int, int);
 
 /* function definition(s) */
 hash_table * new_hash_table(void (*garbage) (void *value)) {
@@ -92,6 +95,20 @@ void del_hash_table(hash_table *table) {
   free(table);
 }
 
+static void del_hash_table_item_key(hash_table *table) {
+  for(int i = 0; i < table->size; ++i) {
+    hash_item *item;
+    item = table->items[i];
+
+    if(item != NULL & item != &HASH_ITEM_DEL) {
+      del_hash_item_key(item);
+    }
+  }
+
+  free(table->items);
+  free(table);
+}
+
 static hash_item * new_hash_item(const char *key, void *value) {
   hash_item *new_item;
   new_item = (hash_item *) malloc(sizeof(hash_item));
@@ -102,7 +119,7 @@ static hash_item * new_hash_item(const char *key, void *value) {
   return new_item;
 }
 
-static void * del_hash_item(hash_table *table, hash_item *item) {
+static void del_hash_item(hash_table *table, hash_item *item) {
   void *value;
   value = item->value;
 
@@ -112,20 +129,28 @@ static void * del_hash_item(hash_table *table, hash_item *item) {
   (*(table->garbage)) (value);
 }
 
-static int hash_index(const char *key, const int size) {
-  unsigned long hash = 5381;
-  int character;
+static void del_hash_item_key(hash_item *item) {
+  free(item->key);
+  free(item);
+}
 
-  while(character = *(key++)) {
-    hash = ((hash << 5) + hash) + character;
+static int hash_index(const char *key, const int prime, const int size) {
+  unsigned long hash = 0;
+  const int length = strlen(key);
+
+  for(int i = 0; i < length; ++i) {
+    hash += (unsigned long) power(prime, length - (i + 1)) * key[i];
+    hash = hash % size;
   }
 
-  return (int) (hash % size); // fit index into table
+  return (int) hash;
 }
 
 static int get_hash_index(const char *key, const int size, const int attempt) {
-  const int hash = hash_index(key, size);
-  return (hash + (attempt * (hash + 1))) % size;
+  const int hash_01 = hash_index(key, 5381, size);
+  const int hash_02 = hash_index(key, 7129, size);
+
+  return (hash_01 + (attempt * (hash_02 + 1))) % size;
 }
 
 void hash_insert(hash_table *table, const char *key, void *value) {
@@ -254,13 +279,14 @@ static void hash_resize(hash_table *table, const int base) {
   table->count = new_table->count;
 
   const int tmp_size = table->size;
+  table->size = new_table->size;
   new_table->size = tmp_size;
 
-  hash_item **tmp_items;
-  tmp_items = table->items;
+  hash_item **tmp_items = table->items;
+  table->items = new_table->items;
   new_table->items = tmp_items;
 
-  del_hash_table(new_table); // delete the "old" table
+  del_hash_table_item_key(new_table); // delete the "old" table
 }
 
 static void hash_resizeup(hash_table *table) {
@@ -326,6 +352,19 @@ static int next_prime(int num) {
   }
 
   return prime;
+}
+
+static int power(int a, int b) {
+  if(b == 0) {
+    return 1;
+  }
+
+  int result = a;
+  for(int i = 1; i < b; ++i) {
+    result = result * a;
+  }
+
+  return result;
 }
 
 #endif
