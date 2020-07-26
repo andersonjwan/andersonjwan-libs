@@ -7,7 +7,7 @@
 #include <string.h>
 
 /* RESTRICTION(S) */
-#define INIT_SIZE 5
+#define INIT_SIZE 100
 
 /* data structure definition(s) */
 typedef struct {
