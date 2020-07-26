@@ -118,17 +118,17 @@ void hash_insert(hash_table *table, const char *key, void *value) {
 
   hash_item *curr;
   curr = table->items[index];
+
   int i = 1;
-
-  /* collision handling : open addressing */
   while(curr != NULL) {
-    /* update item's value */
-    if(strcmp(curr->key, key) == 0) {
-      del_hash_item(table, curr);
+    if(curr != &HASH_ITEM_DEL) {
+      if(strcmp(curr->key, key) == 0) {
+        del_hash_item(table, curr);
 
-      /* update table */
-      table->items[index] = item;
-      return;
+        /* update table */
+        table->items[index] = item;
+        return;
+      }
     }
 
     index = get_hash_index(item->key, i);
@@ -151,8 +151,10 @@ void * hash_search(hash_table *table, const char *key) {
 
   int i = 1;
   while(item != NULL) {
-    if(strcmp(item->key, key) == 0) {
-      return item->value;
+    if(item != &HASH_ITEM_DEL) {
+      if(strcmp(item->key, key) == 0) {
+        return item->value;
+      }
     }
 
     index = get_hash_index(key, i);
@@ -174,8 +176,8 @@ void hash_delete(hash_table *table, const char *key) {
   while(item != NULL) {
     if(item != &HASH_ITEM_DEL) {
       if(strcmp(item->key, key) == 0) {
-        del_hash_item(table, item);
-        table->items[index] = &HASH_ITEM_DEL;
+        del_hash_item(table, item);           // delete the old item
+        table->items[index] = &HASH_ITEM_DEL; // set item as DELETED
       }
     }
 
