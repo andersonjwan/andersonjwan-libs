@@ -32,6 +32,7 @@ static int get_hash_index(const char *, int);
 
 void hash_insert(hash_table *, const char *, void *);
 
+static void print_event(const char *);
 static void check_alloc(const void *);
 
 /* function definition(s) */
@@ -120,6 +121,14 @@ void hash_insert(hash_table *table, const char *key, void *value) {
 
   table->items[index] = item;
   ++(table->count);
+}
+
+static void print_event(const char *event) {
+  fprintf(stdout, "\033[0;33m");    // set the text color to bold yellow
+  fprintf(stdout, "EVENT");
+  fprintf(stdout, "\033[0m");       // reset the text color to default
+
+  fprintf(stdout, ": %s\n", event); // print message
 }
 
 static void check_alloc(const void *ptr) {
