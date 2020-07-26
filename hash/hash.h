@@ -22,4 +22,33 @@ typedef struct {
   hash_item **items;  // array of pointers to item(s)
 } hash_table;
 
+/* forward declaration(s) */
+hash_table *new_hash_table(void);
+
+static void check_alloc(const void *);
+
+/* function definition(s) */
+hash_table * new_hash_table(void) {
+  hash_table *new_table;
+  new_table = (hash_table *) malloc(sizeof(hash_table));
+  check_alloc((void *) new_table);
+
+  new_table->size  = TABLE_SIZE;
+  new_table->count = 0;
+
+  new_table->items = calloc((size_t) TABLE_SIZE, sizeof(hash_item *));
+  check_alloc((void *) (new_table->items));
+
+  return new_table;
+}
+
+static void check_alloc(const void *ptr) {
+  if(ptr == NULL) {
+    fprintf(stderr, "Error : Insufficient Memory\n");
+    exit(1);
+  }
+
+  return;
+}
+
 #endif
