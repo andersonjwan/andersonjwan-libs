@@ -7,7 +7,7 @@
 #include <string.h>
 
 /* RESTRICTION(S) */
-#define TABLE_SIZE 100
+#define INIT_SIZE 100
 
 /* data structure definition(s) */
 typedef struct {
@@ -17,6 +17,7 @@ typedef struct {
 
 typedef struct {
   unsigned int size;  // max table size
+  unsigned int base;  // the base table size (does not change)
   unsigned int count; // number of items in table currently
 
   void (*garbage) (void *value);
@@ -28,33 +29,51 @@ static hash_item HASH_ITEM_DEL = {NULL, NULL};
 
 /* forward declaration(s) */
 hash_table * new_hash_table(void (*garbage) (void *));
+static hash_table * new_hash_table_sized(const int, void (*garbage) (void *));
 void del_hash_table(hash_table *);
+
 static hash_item * new_hash_item(const char *, void *);
 static void * del_hash_item(hash_table *, hash_item *);
 
-static int hash_index(const char *);
-static int get_hash_index(const char *, int);
+static int hash_index(const char *, const int);
+static int get_hash_index(const char *, const int, int);
 
 void hash_insert(hash_table *, const char *, void *);
 void * hash_search(hash_table *, const char *);
 void hash_delete(hash_table *, const char *);
 void hash_print(hash_table *);
 
+static void hash_resize(hash_table *, const int);
+static void hash_resizeup(hash_table *);
+static void hash_resizedown(hash_table *);
+
 static void print_event(const char *);
 static void check_alloc(const void *);
+
+static int is_prime(int);
+static int next_prime(int);
 
 /* function definition(s) */
 hash_table * new_hash_table(void (*garbage) (void *value)) {
   hash_table *new_table;
+  new_table = new_hash_table_sized(INIT_SIZE, garbage);
+
+  return new_table;
+}
+
+static hash_table * new_hash_table_sized(const int base,
+                                         void (*garbage) (void *value)) {
+  hash_table *new_table;
   new_table = (hash_table *) malloc(sizeof(hash_table));
   check_alloc((void *) new_table);
 
-  new_table->size  = TABLE_SIZE;
+  new_table->base = base;
+  new_table->size = next_prime(new_table->base);
   new_table->count = 0;
-  new_table->garbage = garbage;  // set garbage collector function
+  new_table->garbage = garbage;
 
-  new_table->items = calloc((size_t) TABLE_SIZE, sizeof(hash_item *));
-  check_alloc((void *) (new_table->items));
+  new_table->items = calloc((size_t) new_table->size, sizeof(hash_item *));
+  check_alloc((void *) new_table->items);
 
   return new_table;
 }
@@ -93,7 +112,7 @@ static void * del_hash_item(hash_table *table, hash_item *item) {
   (*(table->garbage)) (value);
 }
 
-static int hash_index(const char *key) {
+static int hash_index(const char *key, const int size) {
   unsigned long hash = 5381;
   int character;
 
@@ -101,20 +120,25 @@ static int hash_index(const char *key) {
     hash = ((hash << 5) + hash) + character;
   }
 
-  return (int) (hash % TABLE_SIZE); // fit index into table
+  return (int) (hash % size); // fit index into table
 }
 
-static int get_hash_index(const char *key, const int attempt) {
-  const int hash = hash_index(key);
-  return (hash + (attempt * (hash + 1))) % TABLE_SIZE;
+static int get_hash_index(const char *key, const int size, const int attempt) {
+  const int hash = hash_index(key, size);
+  return (hash + (attempt * (hash + 1))) % size;
 }
 
 void hash_insert(hash_table *table, const char *key, void *value) {
+  const int load = (table->count * 100) / table->size;
+  if(load > 70) {
+    hash_resizeup(table);
+  }
+
   hash_item *item;
   item = new_hash_item(key, value);
 
   int index;
-  index = get_hash_index(item->key, 0);
+  index = get_hash_index(item->key, table->size, 0);
 
   hash_item *curr;
   curr = table->items[index];
@@ -131,7 +155,7 @@ void hash_insert(hash_table *table, const char *key, void *value) {
       }
     }
 
-    index = get_hash_index(item->key, i);
+    index = get_hash_index(item->key, table->size, i);
     print_event("Collision Detected");
 
     curr = table->items[index];
@@ -144,7 +168,7 @@ void hash_insert(hash_table *table, const char *key, void *value) {
 
 void * hash_search(hash_table *table, const char *key) {
   int index;
-  index = get_hash_index(key, 0);
+  index = get_hash_index(key, table->size, 0);
 
   hash_item *item;
   item = table->items[index];
@@ -157,7 +181,7 @@ void * hash_search(hash_table *table, const char *key) {
       }
     }
 
-    index = get_hash_index(key, i);
+    index = get_hash_index(key, table->size, i);
     item = table->items[index];
     ++i;
   }
@@ -166,8 +190,13 @@ void * hash_search(hash_table *table, const char *key) {
 }
 
 void hash_delete(hash_table *table, const char *key) {
+  const int load = (table->count * 100) / table->size;
+  if(load < 10) {
+    hash_resizedown(table);
+  }
+
   int index;
-  index = get_hash_index(key, 0);
+  index = get_hash_index(key, table->size, 0);
 
   hash_item *item;
   item = table->items[index];
@@ -181,7 +210,7 @@ void hash_delete(hash_table *table, const char *key) {
       }
     }
 
-    index = get_hash_index(key, i);
+    index = get_hash_index(key, table->size, i);
     item = table->items[index];
     ++i;
   }
@@ -204,6 +233,47 @@ void hash_print(hash_table *table) {
   }
 }
 
+static void hash_resize(hash_table *table, const int base) {
+  if(base < INIT_SIZE) {
+    return;
+  }
+
+  hash_table *new_table;
+  new_table = new_hash_table_sized(base, table->garbage);
+
+  for(int i = 0; i < table->size; ++i) {
+    hash_item *item;
+    item = table->items[i];
+
+    if(item != NULL && item != &HASH_ITEM_DEL) {
+      hash_insert(new_table, item->key, item->value);
+    }
+  }
+
+  table->base = new_table->base;
+  table->count = new_table->count;
+
+  const int tmp_size = table->size;
+  new_table->size = tmp_size;
+
+  hash_item **tmp_items;
+  tmp_items = table->items;
+  new_table->items = tmp_items;
+
+  del_hash_table(new_table); // delete the "old" table
+}
+
+static void hash_resizeup(hash_table *table) {
+  const int new_base = (table->base) * 2;
+  hash_resize(table, new_base);
+}
+
+static void hash_resizedown(hash_table *table) {
+  const int new_base = (table->base) / 2;
+
+  hash_resize(table, new_base);
+}
+
 static void print_event(const char *event) {
   fprintf(stdout, "\033[0;33m");    // set the text color to bold yellow
   fprintf(stdout, "EVENT");
@@ -219,6 +289,43 @@ static void check_alloc(const void *ptr) {
   }
 
   return;
+}
+
+/* HELPER FUNCTION(S) */
+static int is_prime(int num) {
+  if(num <= 1) { return 0; }
+  if(num <= 3) { return 1; }
+
+  if(num % 2 == 0 || num % 3 == 0) {
+    return 0;
+  }
+
+  for(int i = 5; i * i <= num; i = i + 6) {
+    if(num % i == 0 || (num % (i + 2)) == 0) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+static int next_prime(int num) {
+  if(num <= 1) {
+    return 2;
+  }
+
+  int prime = num;
+  int found = 0;
+
+  while(!found) {
+    ++prime;
+
+    if(is_prime(prime)) {
+      found = 1;
+    }
+  }
+
+  return prime;
 }
 
 #endif
