@@ -36,6 +36,7 @@ static int get_hash_index(const char *, int);
 void hash_insert(hash_table *, const char *, void *);
 void * hash_search(hash_table *, const char *);
 void hash_delete(hash_table *, const char *, void (*destroy) (void *));
+void hash_print(hash_table *);
 
 static void print_event(const char *);
 static void check_alloc(const void *);
@@ -175,6 +176,21 @@ void hash_delete(hash_table *table, const char *key, void (*destroy) (void *)) {
   }
 
   --(table->count);
+}
+
+void hash_print(hash_table *table) {
+  hash_item *item;
+  int active = 1;
+
+  for(int i = 0; i < table->size; ++i) {
+    item = table->items[i];
+
+    if(item != NULL) {
+      printf("Item #%02d @ Index %d\n", active, i);
+      printf("Data: {%s, %p}\n", item->key, (char *) item->value);
+      ++active;
+    }
+  }
 }
 
 static void print_event(const char *event) {
