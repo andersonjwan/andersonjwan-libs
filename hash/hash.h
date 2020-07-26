@@ -27,6 +27,8 @@ hash_table *new_hash_table(void);
 static hash_item * new_hash_item(const char *, void *);
 static void * del_hash_item(hash_item *);
 
+static int hash_index(const char *);
+
 static void check_alloc(const void *);
 
 /* function definition(s) */
@@ -62,6 +64,17 @@ static void * del_hash_item(hash_item *item) {
   free(item);
 
   return value;
+}
+
+static int hash_index(const char *key) {
+  unsigned long hash = 5381;
+  int character;
+
+  while(character = *(key++)) {
+    hash = ((hash << 5) + hash) + character;
+  }
+
+  return (int) (hash % TABLE_SIZE); // fit index into table
 }
 
 static void check_alloc(const void *ptr) {
