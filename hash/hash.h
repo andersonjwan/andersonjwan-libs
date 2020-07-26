@@ -30,6 +30,8 @@ static void * del_hash_item(hash_item *);
 static int hash_index(const char *);
 static int get_hash_index(const char *, int);
 
+void hash_insert(hash_table *, const char *, void *);
+
 static void check_alloc(const void *);
 
 /* function definition(s) */
@@ -81,6 +83,43 @@ static int hash_index(const char *key) {
 static int get_hash_index(const char *key, const int attempt) {
   const int hash = hash_index(key);
   return (hash + (attempt * (hash + 1))) % TABLE_SIZE;
+}
+
+void hash_insert(hash_table *table, const char *key, void *value) {
+  hash_item *item;
+  item = new_hash_item(key, value);
+
+  int index;
+  index = get_hash_index(item->key, 0);
+
+  hash_item *curr;
+  curr = table->items[index];
+  int i = 1;
+
+  /* collision handling : open addressing */
+  while(curr != NULL) {
+    /* update item's value */
+    if(strcmp(curr->key, key) == 0) {
+      void *value;
+      value = del_hash_item(curr);
+
+      /* set new item value */
+      item->value = value;
+
+      /* update table */
+      table->items[index] = item;
+      return;
+    }
+
+    index = get_hash_index(item->key, i);
+    print_event("Collision Detected");
+
+    curr = table->items[index];
+    ++i;
+  }
+
+  table->items[index] = item;
+  ++(table->count);
 }
 
 static void check_alloc(const void *ptr) {
