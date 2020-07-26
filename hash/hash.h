@@ -64,7 +64,7 @@ void del_hash_table(hash_table *table) {
     hash_item *item;
     item = table->items[i];
 
-    if(item != NULL) {
+    if(item != NULL && item != &HASH_ITEM_DEL) {
       del_hash_item(table, item);
     }
   }
