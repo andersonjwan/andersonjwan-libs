@@ -21,3 +21,5 @@ typedef struct {
 
   hash_item **items;  // array of pointers to item(s)
 } hash_table;
+
+#endif
