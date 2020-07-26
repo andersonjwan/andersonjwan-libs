@@ -25,6 +25,7 @@ typedef struct {
 /* forward declaration(s) */
 hash_table *new_hash_table(void);
 static hash_item * new_hash_item(const char *, void *);
+static void * del_hash_item(hash_item *);
 
 static void check_alloc(const void *);
 
@@ -51,6 +52,16 @@ static hash_item * new_hash_item(const char *key, void *value) {
   new_item->value = value;
 
   return new_item;
+}
+
+static void * del_hash_item(hash_item *item) {
+  void *value;
+  value = item->value;
+
+  free(item->key);
+  free(item);
+
+  return value;
 }
 
 static void check_alloc(const void *ptr) {
