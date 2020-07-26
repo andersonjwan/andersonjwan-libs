@@ -4,9 +4,10 @@
 /* standard libarary header(s) */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /* RESTRICTION(S) */
-#define TABLE_SIZE 10
+#define TABLE_SIZE 100
 
 /* data structure definition(s) */
 typedef struct {
@@ -18,9 +19,5 @@ typedef struct {
   unsigned int size;  // max table size
   unsigned int count; // number of items in table currently
 
-  char **items;       // array of pointers to item(s)
+  hash_item **items;  // array of pointers to item(s)
 } hash_table;
-
-
-
-#endif
