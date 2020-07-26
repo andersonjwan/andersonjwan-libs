@@ -28,6 +28,7 @@ static hash_item * new_hash_item(const char *, void *);
 static void * del_hash_item(hash_item *);
 
 static int hash_index(const char *);
+static int get_hash_index(const char *, int);
 
 static void check_alloc(const void *);
 
@@ -75,6 +76,11 @@ static int hash_index(const char *key) {
   }
 
   return (int) (hash % TABLE_SIZE); // fit index into table
+}
+
+static int get_hash_index(const char *key, const int attempt) {
+  const int hash = hash_index(key);
+  return (hash + (attempt * (hash + 1))) % TABLE_SIZE;
 }
 
 static void check_alloc(const void *ptr) {
