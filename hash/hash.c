@@ -19,7 +19,6 @@ int main(void) {
   hash_table *table;
   table = new_hash_table();
 
-  /*
   struct Date *date;
   date = (struct Date *) malloc(sizeof(struct Date));
 
@@ -31,6 +30,5 @@ int main(void) {
 
   hash_delete(table, "date", destroy);
   hash_print(table);
-  */
   return 0;
 }
