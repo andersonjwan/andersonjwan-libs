@@ -54,7 +54,7 @@ static void check_alloc(const void *);
 
 static int is_prime(int);
 static int next_prime(int);
-static int power(int, int);
+static unsigned long power(int, int);
 
 /* function definition(s) */
 hash_table * new_hash_table(void (*garbage) (void *value)) {
@@ -354,12 +354,12 @@ static int next_prime(int num) {
   return prime;
 }
 
-static int power(int a, int b) {
+static unsigned long power(int a, int b) {
   if(b == 0) {
     return 1;
   }
 
-  int result = a;
+  unsigned long result = a;
   for(int i = 1; i < b; ++i) {
     result = result * a;
   }
