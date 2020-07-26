@@ -19,6 +19,7 @@ typedef struct {
   unsigned int size;  // max table size
   unsigned int count; // number of items in table currently
 
+  void (*garbage) (void *value);
   hash_item **items;  // array of pointers to item(s)
 } hash_table;
 
@@ -26,7 +27,7 @@ typedef struct {
 static hash_item HASH_ITEM_DEL = {NULL, NULL};
 
 /* forward declaration(s) */
-hash_table *new_hash_table(void);
+hash_table *new_hash_table(void (*garbage) (void *));
 static hash_item * new_hash_item(const char *, void *);
 static void * del_hash_item(hash_item *);
 
@@ -35,20 +36,21 @@ static int get_hash_index(const char *, int);
 
 void hash_insert(hash_table *, const char *, void *);
 void * hash_search(hash_table *, const char *);
-void hash_delete(hash_table *, const char *, void (*destroy) (void *));
+void hash_delete(hash_table *, const char *);
 void hash_print(hash_table *);
 
 static void print_event(const char *);
 static void check_alloc(const void *);
 
 /* function definition(s) */
-hash_table * new_hash_table(void) {
+hash_table * new_hash_table(void (*garbage) (void *value)) {
   hash_table *new_table;
   new_table = (hash_table *) malloc(sizeof(hash_table));
   check_alloc((void *) new_table);
 
   new_table->size  = TABLE_SIZE;
   new_table->count = 0;
+  new_table->garbage = garbage;  // set garbage collector function
 
   new_table->items = calloc((size_t) TABLE_SIZE, sizeof(hash_item *));
   check_alloc((void *) (new_table->items));
@@ -150,7 +152,7 @@ void * hash_search(hash_table *table, const char *key) {
   return NULL;
 }
 
-void hash_delete(hash_table *table, const char *key, void (*destroy) (void *)) {
+void hash_delete(hash_table *table, const char *key) {
   int index;
   index = get_hash_index(key, 0);
 
@@ -164,7 +166,7 @@ void hash_delete(hash_table *table, const char *key, void (*destroy) (void *)) {
         void *value;
         value = del_hash_item(item);
 
-        (*destroy) (value); // call destroy function on value
+        (*(table->garbage)) (value); // call destroy function on value
         table->items[index] = &HASH_ITEM_DEL;
         printf("SET DELETED ITEM\n");
       }
