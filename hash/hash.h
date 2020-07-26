@@ -31,6 +31,7 @@ static int hash_index(const char *);
 static int get_hash_index(const char *, int);
 
 void hash_insert(hash_table *, const char *, void *);
+void * hash_search(hash_table *, const char *);
 
 static void print_event(const char *);
 static void check_alloc(const void *);
@@ -121,6 +122,27 @@ void hash_insert(hash_table *table, const char *key, void *value) {
 
   table->items[index] = item;
   ++(table->count);
+}
+
+void * hash_search(hash_table *table, const char *key) {
+  int index;
+  index = get_hash_index(key, 0);
+
+  hash_item *item;
+  item = table->items[index];
+
+  int i = 1;
+  while(item != NULL) {
+    if(strcmp(item->key, key) == 0) {
+      return item->value;
+    }
+
+    index = get_hash_index(key, i);
+    item = table->items[index];
+    ++i;
+  }
+
+  return NULL;
 }
 
 static void print_event(const char *event) {
