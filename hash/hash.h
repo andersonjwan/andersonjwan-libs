@@ -32,6 +32,7 @@ static int get_hash_index(const char *, int);
 
 void hash_insert(hash_table *, const char *, void *);
 void * hash_search(hash_table *, const char *);
+void hash_delete(hash_table *, const char *, void (*destroy) (void *));
 
 static void print_event(const char *);
 static void check_alloc(const void *);
@@ -143,6 +144,34 @@ void * hash_search(hash_table *table, const char *key) {
   }
 
   return NULL;
+}
+
+void hash_delete(hash_table *table, const char *key, void (*destroy) (void *)) {
+  int index;
+  index = get_hash_index(key, 0);
+
+  hash_item *item;
+  item = table->items[index];
+
+  int i = 1;
+  while(item != NULL) {
+    if(item != &HASH_ITEM_DEL) {
+      if(strcmp(item->key, key) == 0) {
+        void *value;
+        value = del_hash_item(item);
+
+        (*destroy) (value); // call destroy function on value
+        table->items[index] = &HASH_ITEM_DEL;
+        printf("SET DELETED ITEM\n");
+      }
+    }
+
+    index = get_hash_index(key, i);
+    item = table->items[index];
+    ++i;
+  }
+
+  --(table->count);
 }
 
 static void print_event(const char *event) {
