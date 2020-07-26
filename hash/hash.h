@@ -22,6 +22,9 @@ typedef struct {
   hash_item **items;  // array of pointers to item(s)
 } hash_table;
 
+/* global(s) */
+static hash_item HASH_ITEM_DEL = {NULL, NULL};
+
 /* forward declaration(s) */
 hash_table *new_hash_table(void);
 static hash_item * new_hash_item(const char *, void *);
